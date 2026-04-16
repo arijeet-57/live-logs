@@ -1,5 +1,4 @@
 import { getPostBySlug } from "@/app/actions/post";
-import { getCommentsForPost } from "@/app/actions/comment";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { CommentSection } from "@/components/blog/CommentSection";
@@ -14,8 +13,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   if (!post) {
     notFound();
   }
-
-  const comments = await getCommentsForPost(post.id);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -83,7 +80,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
       {/* Persistence Panel (Right) */}
       <aside className="w-96 border-l-2 border-neo-border bg-neo-surface hidden lg:flex flex-col overflow-hidden">
-         <CommentSection postId={post.id} initialComments={comments} />
+         <CommentSection postId={post.id} initialComments={post.comments} />
       </aside>
     </div>
   );

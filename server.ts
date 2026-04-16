@@ -41,6 +41,11 @@ app.prepare().then(() => {
       socket.to(data.postId).emit("typing-indicator", data.author);
     });
 
+    socket.on("new-comment", (data: { postId: string; comment: Record<string, unknown> }) => {
+      // Broadcast the new comment to everyone else in the room
+      socket.to(data.postId).emit("comment-notification", data.comment);
+    });
+
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
     });

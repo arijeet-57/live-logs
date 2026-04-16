@@ -79,6 +79,18 @@ export async function getPosts() {
   });
 }
 
+/** Public feed: only published posts, live ones float to the top */
+export async function getPublishedPosts() {
+  return await prisma.post.findMany({
+    where: { published: true },
+    orderBy: [
+      { isLive: "desc" },
+      { createdAt: "desc" },
+    ],
+    include: { author: true },
+  });
+}
+
 export async function handleDeletePost(id: string) {
   const session = await getServerSession(authOptions);
   if (session?.user?.email !== "admin@livelog.dev") {
@@ -96,6 +108,21 @@ export async function handleDeletePost(id: string) {
 export async function getPostBySlug(slug: string) {
   return await prisma.post.findUnique({
     where: { slug },
-    include: { author: true, comments: { include: { author: true } } },
+    include: {
+      author: true,
+      comments: {
+        where: { parentId: null }, // top-level only
+        include: {
+          author: true,
+          replies: {
+            include: {
+              author: true,
+              replies: { include: { author: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      },
+    },
   });
 }

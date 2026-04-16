@@ -40,10 +40,17 @@ export const useSocket = (postId?: string) => {
     }
   };
 
+  const emitNewComment = (comment: Record<string, unknown>) => {
+    if (socketRef.current && postId) {
+      socketRef.current.emit("new-comment", { postId, comment });
+    }
+  };
+
   return {
     socket: socketRef.current,
     isConnected,
     emitContentUpdate,
     emitTyping,
+    emitNewComment,
   };
 };
