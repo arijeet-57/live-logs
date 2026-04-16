@@ -1,30 +1,38 @@
 import Link from "next/link";
-import { Plus, Radio, Edit3, MessageSquare, Terminal } from "lucide-react";
-import { getPosts, createPost } from "@/app/actions/post";
+import { Plus, Radio, Edit3, Terminal } from "lucide-react";
+import { getPosts, handleCreatePost } from "@/app/actions/post";
 import prisma from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { AuthStatus } from "@/components/auth/AuthStatus";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { DeletePostButton } from "@/components/blog/DeletePostButton";
 
 export default async function Home() {
+  const session = await getServerSession(authOptions);
   const posts = await getPosts();
+  const isAdmin = session?.user?.email === "admin@livelog.dev";
 
   return (
     <div className="flex h-screen overflow-hidden">
       {/* LEFT PANEL: Blog List */}
       <aside className="w-80 border-r-2 border-neo-border bg-neo-surface flex flex-col">
         <div className="p-4 border-b-2 border-neo-border flex items-center justify-between">
-          <h1 className="text-xl font-bold tracking-tighter flex items-center gap-2">
+          <Link href="/" className="text-xl font-bold tracking-tighter flex items-center gap-2">
             <Terminal className="w-5 h-5" />
             LIVE_LOG
-          </h1>
-          <form action={async () => {
-              "use server";
-              // Placeholder: in a real app we'd get the current user ID
-              // const post = await createPost("user-id");
-              // redirect(`/editor/\${post.id}`);
-          }}>
-            <button className="neo-btn p-1.5 hover:bg-neo-accent transition-colors" type="submit">
-              <Plus className="w-4 h-4" />
-            </button>
-          </form>
+          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {isAdmin && (
+                <form action={handleCreatePost}>
+                    <button className="neo-btn p-1.5 hover:bg-neo-accent transition-colors" type="submit">
+                    <Plus className="w-4 h-4" />
+                    </button>
+                </form>
+            )}
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -35,18 +43,25 @@ export default async function Home() {
                  No posts found. Create your first one.
                </div>
             ) : posts.map((post) => (
-              <Link key={post.id} href={`/editor/${post.id}`} className="block">
-                <div className="neo-card flex flex-col gap-2 cursor-pointer hover:border-neo-accent transition-colors">
-                    <div className="flex justify-between items-start">
-                    <span className={`text-[10px] px-1.5 py-0.5 font-bold ${post.published ? 'bg-green-900 border-green-800' : 'bg-neo-accent'}`}>
-                        {post.published ? 'PUBLISHED' : 'DRAFT'}
-                    </span>
-                    <span className="text-[10px] opacity-50">{new Date(post.createdAt).toLocaleDateString()}</span>
+              <div key={post.id} className="group relative">
+                <Link href={isAdmin ? `/editor/${post.id}` : `/live/${post.id}`} className="block">
+                    <div className="neo-card flex flex-col gap-2 cursor-pointer hover:border-neo-accent transition-colors">
+                        <div className="flex justify-between items-start">
+                        <span className={`text-[10px] px-1.5 py-0.5 font-bold ${post.published ? 'bg-green-900 border-green-800' : 'bg-neo-accent'}`}>
+                            {post.published ? 'PUBLISHED' : 'DRAFT'}
+                        </span>
+                        <span className="text-[10px] opacity-50">{new Date(post.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <h3 className="font-bold text-sm leading-tight">{post.title}</h3>
+                        <p className="text-xs opacity-60 line-clamp-2">{post.content || "Empty content..."}</p>
                     </div>
-                    <h3 className="font-bold text-sm leading-tight">{post.title}</h3>
-                    <p className="text-xs opacity-60 line-clamp-2">{post.content || "Empty content..."}</p>
-                </div>
-              </Link>
+                </Link>
+                {isAdmin && (
+                  <div className="absolute top-2 right-2">
+                    <DeletePostButton postId={post.id} />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -79,9 +94,9 @@ export default async function Home() {
               <p className="text-[10px] opacity-50">Broadcast your typing in real-time to your readers.</p>
             </div>
           </div>
-          <button className="neo-btn w-full py-3 font-bold bg-neo-accent hover:bg-zinc-600 transition-colors">
-            START WRITING NOW
-          </button>
+          <div className="w-full">
+            <AuthStatus session={session} />
+          </div>
         </div>
       </main>
 

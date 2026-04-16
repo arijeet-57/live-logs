@@ -2,13 +2,16 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { nanoid } from "nanoid"; // I need to install nanoid or use a custom slug generator
+import { nanoid } from "nanoid";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export async function createPost(authorId: string) {
   const post = await prisma.post.create({
     data: {
       title: "Untitled Post",
-      slug: `untitled-${Math.random().toString(36).substring(2, 7)}`,
+      slug: `post-${nanoid(8)}`,
       content: "",
       authorId,
     },
@@ -16,6 +19,26 @@ export async function createPost(authorId: string) {
   
   revalidatePath("/");
   return post;
+}
+
+export async function handleCreatePost() {
+  const session = await getServerSession(authOptions);
+  
+  if (session?.user?.email !== "admin@livelog.dev") {
+    throw new Error("Unauthorized: Personnel access levels insufficient.");
+  }
+
+  const post = await prisma.post.create({
+    data: {
+      title: "Untitled Entry",
+      slug: `post-${nanoid(10)}`,
+      content: "# New Entry\n\nStart writing...",
+      authorId: (session.user as any).id,
+    },
+  });
+
+  revalidatePath("/");
+  redirect(`/editor/${post.id}`);
 }
 
 export async function updatePost(id: string, data: { title?: string; content?: string; published?: boolean; isLive?: boolean }) {
@@ -26,6 +49,26 @@ export async function updatePost(id: string, data: { title?: string; content?: s
   
   revalidatePath("/");
   revalidatePath(`/post/${post.slug}`);
+  revalidatePath(`/editor/${id}`);
+  return post;
+}
+
+export async function toggleLiveMode(id: string, currentState: boolean) {
+  const session = await getServerSession(authOptions);
+  if (session?.user?.email !== "admin@livelog.dev") {
+    throw new Error("Unauthorized");
+  }
+
+  const post = await prisma.post.update({
+    where: { id },
+    data: { 
+      isLive: !currentState,
+      lastLiveAt: currentState ? new Date() : undefined
+    },
+  });
+
+  revalidatePath(`/editor/${id}`);
+  revalidatePath("/");
   return post;
 }
 
@@ -34,6 +77,20 @@ export async function getPosts() {
     orderBy: { createdAt: "desc" },
     include: { author: true },
   });
+}
+
+export async function handleDeletePost(id: string) {
+  const session = await getServerSession(authOptions);
+  if (session?.user?.email !== "admin@livelog.dev") {
+    throw new Error("Unauthorized");
+  }
+
+  await prisma.post.delete({
+    where: { id },
+  });
+
+  revalidatePath("/");
+  redirect("/");
 }
 
 export async function getPostBySlug(slug: string) {

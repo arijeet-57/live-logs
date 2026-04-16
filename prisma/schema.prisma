@@ -71,6 +71,7 @@ model Post {
   category    String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  lastLiveAt  DateTime?
   comments    Comment[]
 
   @@index([authorId])

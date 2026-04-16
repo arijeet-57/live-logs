@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import { useSocket } from "@/hooks/useSocket";
-import { debounce } from "lodash"; // I need to install lodash or implement a simple debounce
+import { updatePost } from "@/app/actions/post";
+import { Loader2, CheckCircle2 } from "lucide-react";
 
 const debounceHelper = (fn: Function, delay: number) => {
   let timeoutId: NodeJS.Timeout;
@@ -21,6 +22,7 @@ interface EditorProps {
 
 export const MarkdownEditor: React.FC<EditorProps> = ({ postId, initialContent, isLive = false }) => {
   const [content, setContent] = useState(initialContent);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const { emitContentUpdate, emitTyping } = useSocket(postId);
 
   // Debounced Content Update for Sockets (500ms)
@@ -33,13 +35,20 @@ export const MarkdownEditor: React.FC<EditorProps> = ({ postId, initialContent, 
     [isLive, emitContentUpdate]
   );
 
-  // Debounced Auto-save to DB (5s) - Placeholder for Server Action
+  // Debounced Auto-save to DB (3s)
   const debouncedAutoSave = useCallback(
-    debounceHelper((newContent: string) => {
-      console.log("Auto-saving to database...", newContent.slice(0, 20));
-      // TODO: Call Server Action to save post
-    }, 5000),
-    []
+    debounceHelper(async (newContent: string) => {
+      setSaveStatus("saving");
+      try {
+        await updatePost(postId, { content: newContent });
+        setSaveStatus("saved");
+        setTimeout(() => setSaveStatus("idle"), 2000);
+      } catch (error) {
+        console.error("Auto-save failed:", error);
+        setSaveStatus("idle");
+      }
+    }, 3000),
+    [postId]
   );
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -57,10 +66,17 @@ export const MarkdownEditor: React.FC<EditorProps> = ({ postId, initialContent, 
     <div className="flex flex-col h-full">
       <div className="flex-1 flex overflow-hidden">
         {/* Editor Area */}
-        <div className="flex-1 flex flex-col border-r-2 border-neo-border">
+        <div className="flex-1 flex flex-col border-r-2 border-neo-border relative">
+          {isLive && (
+            <div className="absolute top-4 right-4 flex items-center gap-2 text-[10px] font-bold text-green-500 bg-green-950/30 px-2 py-1 border border-green-900/50 z-10">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              BROADCASTING LIVE
+            </div>
+          )}
           <textarea
             value={content}
             onChange={handleChange}
+            autoFocus
             className="flex-1 p-6 bg-neo-bg text-foreground font-mono focus:outline-none resize-none leading-relaxed"
             placeholder="Write your markdown here..."
             spellCheck={false}
@@ -79,6 +95,8 @@ export const MarkdownEditor: React.FC<EditorProps> = ({ postId, initialContent, 
           <span>WORDS: {content.trim().split(/\s+/).length}</span>
         </div>
         <div className="flex gap-4 items-center">
+          {saveStatus === "saving" && <span className="flex items-center gap-1.5 opacity-50"><Loader2 className="w-3 h-3 animate-spin" /> SAVING...</span>}
+          {saveStatus === "saved" && <span className="flex items-center gap-1.5 text-green-500"><CheckCircle2 className="w-3 h-3" /> SAVED</span>}
           {isLive && <span className="flex items-center gap-1.5 font-bold animate-pulse text-green-500">● LIVE SYNC ACTIVE</span>}
           <span className="opacity-50 uppercase">AUTOSAVE: ON</span>
         </div>

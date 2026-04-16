@@ -1,12 +1,26 @@
 import prisma from "@/lib/prisma";
 import { MarkdownEditor } from "@/components/editor/MarkdownEditor";
 import { notFound } from "next/navigation";
-import { Radio, ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { LiveToggle } from "@/components/editor/LiveToggle";
 
-export default async function EditorPage({ params }: { params: { id: string } }) {
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { DeletePostButton } from "@/components/blog/DeletePostButton";
+
+export default async function EditorPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const session = await getServerSession(authOptions);
+  
+  if (session?.user?.email !== "admin@livelog.dev") {
+    redirect(`/live/${id}`);
+  }
+
   const post = await prisma.post.findUnique({
-    where: { id: params.id },
+    where: { id: id },
   });
 
   if (!post) {
@@ -28,12 +42,16 @@ export default async function EditorPage({ params }: { params: { id: string } })
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 mr-4">
-             <span className="text-[10px] font-bold opacity-50 uppercase">Live Mode</span>
-             <button className={`w-10 h-5 neo-border relative transition-colors ${post.isLive ? 'bg-green-600' : 'bg-zinc-800'}`}>
-                <div className={`absolute top-0.5 bottom-0.5 w-3.5 neo-border bg-white transition-all ${post.isLive ? 'left-[22px]' : 'left-0.5'}`} />
-             </button>
-          </div>
+          <ThemeToggle />
+          <Link 
+            href={`/live/${post.id}`} 
+            target="_blank"
+            className="text-[10px] font-bold opacity-50 hover:opacity-100 uppercase tracking-widest mr-2"
+          >
+            Preview Public
+          </Link>
+          <LiveToggle postId={post.id} isLive={post.isLive} />
+          <DeletePostButton postId={post.id} />
           <button className="neo-btn px-4 py-1.5 text-xs font-bold neo-btn-accent">
             PUBLISH
           </button>

@@ -2,29 +2,26 @@ import prisma from "@/lib/prisma";
 import { LiveViewer } from "@/components/live/LiveViewer";
 import { notFound } from "next/navigation";
 
-export default async function LivePage({ params }: { params: { id: string } }) {
+export default async function LivePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const post = await prisma.post.findUnique({
-    where: { id: params.id },
+    where: { id: id },
+    include: { 
+      author: true, 
+      comments: { 
+        include: { author: true },
+        orderBy: { createdAt: "desc" }
+      } 
+    },
   });
 
-  if (!post || !post.isLive) {
-    // If post isn't live, maybe show an "Offline" screen
-    return (
-        <div className="h-screen flex items-center justify-center bg-neo-bg p-8">
-            <div className="neo-card max-w-sm w-full text-center space-y-4">
-                <h1 className="text-2xl font-bold tracking-tighter">OFFLINE</h1>
-                <p className="text-xs opacity-60">This blog post is currently not being written live.</p>
-                <button className="neo-btn w-full font-bold py-2">RETURN HOME</button>
-            </div>
-        </div>
-    );
+  if (!post) {
+    notFound();
   }
 
   return (
     <LiveViewer 
-      postId={post.id} 
-      initialContent={post.content} 
-      title={post.title} 
+      post={post}
     />
   );
 }

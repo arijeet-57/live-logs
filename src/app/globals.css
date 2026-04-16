@@ -1,17 +1,31 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+:root {
+  --background: #fafafa;
+  --foreground: #09090b;
+  --neo-surface: #ffffff;
+  --neo-accent: #e4e4e7;
+  --neo-border: #000000;
+  --neo-shadow: #27272a;
+}
+
+.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --neo-surface: #18181b;
+  --neo-accent: #3f3f46;
+  --neo-border: #27272a;
+  --neo-shadow: #09090b;
+}
 
 @theme {
   --font-mono: "JetBrains Mono", monospace;
   
-  --color-neo-bg: #09090b;
-  --color-neo-surface: #18181b;
-  --color-neo-accent: #3f3f46;
-  --color-neo-border: #27272a;
-}
-
-:root {
-  --background: #09090b;
-  --foreground: #fafafa;
+  --color-neo-bg: var(--background);
+  --color-neo-surface: var(--neo-surface);
+  --color-neo-accent: var(--neo-accent);
+  --color-neo-border: var(--neo-border);
 }
 
 body {
@@ -24,25 +38,25 @@ body {
 /* Neo-Brutalist Utilities */
 @layer components {
   .neo-border {
-    border: 2px solid #27272a;
+    border: 2px solid var(--neo-border);
   }
 
   .neo-shadow {
-    box-shadow: 4px 4px 0px 0px #18181b;
+    box-shadow: 4px 4px 0px 0px var(--neo-shadow);
   }
 
   .neo-shadow-lg {
-    box-shadow: 8px 8px 0px 0px #18181b;
+    box-shadow: 8px 8px 0px 0px var(--neo-shadow);
   }
 
   .neo-shadow-accent {
-    box-shadow: 4px 4px 0px 0px #3f3f46;
+    box-shadow: 4px 4px 0px 0px var(--neo-accent);
   }
 
   .neo-card {
-    background: #18181b;
-    border: 2px solid #27272a;
-    box-shadow: 4px 4px 0px 0px #09090b;
+    background: var(--neo-surface);
+    border: 2px solid var(--neo-border);
+    box-shadow: 4px 4px 0px 0px var(--neo-shadow);
     padding: 1.5rem;
   }
 
@@ -51,19 +65,19 @@ body {
     align-items: center;
     justify-content: center;
     padding: 0.5rem 1rem;
-    border: 2px solid #27272a;
-    background: #18181b;
-    box-shadow: 4px 4px 0px 0px #09090b;
+    border: 2px solid var(--neo-border);
+    background: var(--neo-surface);
+    box-shadow: 4px 4px 0px 0px var(--neo-shadow);
     transition: all 0.1s ease;
   }
 
   .neo-btn:active {
-    box-shadow: 0px 0px 0px 0px #09090b;
+    box-shadow: 0px 0px 0px 0px var(--neo-shadow);
     transform: translate(4px, 4px);
   }
 
   .neo-btn-accent {
-    background: #3f3f46;
-    color: white;
+    background: var(--neo-accent);
+    color: var(--foreground);
   }
 }
